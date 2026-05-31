@@ -37,6 +37,9 @@ app:
   elasticsearch:
     enabled: false
 
+  cors:
+    allowed-origins:
+      - https://jullyscraft-frontend.vercel.app
 # ── Server ────────────────────────────────────────────────────────────────────
 server:
   port: ${SERVER_PORT:8080}
