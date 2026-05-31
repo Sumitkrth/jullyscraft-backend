@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +36,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ProductRepository productRepository;
     private final UserRepository    userRepository;
     private final ReviewMapper      reviewMapper;
-    private final AiReviewAnalyzer  aiReviewAnalyzer;   // inner component below
+    private final AiReviewAnalyzer  aiReviewAnalyzer;
 
     // ── Public ────────────────────────────────────────────────────────────────
 
@@ -61,9 +60,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public ReviewStatsResponse getProductStats(Long productId) {
-        double avg     = reviewRepository.findAverageRating(productId) != null
+        double avg   = reviewRepository.findAverageRating(productId) != null
                 ? reviewRepository.findAverageRating(productId) : 0.0;
-        long   total   = reviewRepository.countApproved(productId);
+        long   total = reviewRepository.countApproved(productId);
         Map<Integer, Long> dist = new HashMap<>();
 
         reviewRepository.findRatingDistribution(productId)
@@ -121,8 +120,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         Review saved = reviewRepository.save(review);
 
-        // Async AI analysis — non-blocking
-        aiReviewAnalyzer.analyze(saved.getId(), req.getTitle(), req.getBody());
+        // ✅ FIXED: was analyze(id, title, body) → correct method is analyzeReview(title, body, rating)
+        // Runs @Async so it's non-blocking — result applied separately
+        aiReviewAnalyzer.analyzeReview(
+                req.getTitle(),
+                req.getBody(),
+                req.getRating()
+        );
 
         log.info("Review created by user {} for product {}", userId, req.getProductId());
         return reviewMapper.toPublicResponse(saved);
@@ -148,7 +152,13 @@ public class ReviewServiceImpl implements ReviewService {
         review.setSpamReason(null);
 
         Review saved = reviewRepository.save(review);
-        aiReviewAnalyzer.analyze(saved.getId(), req.getTitle(), req.getBody());
+
+        // ✅ FIXED: same fix as createReview above
+        aiReviewAnalyzer.analyzeReview(
+                req.getTitle(),
+                req.getBody(),
+                req.getRating()
+        );
 
         return reviewMapper.toPublicResponse(saved);
     }
@@ -233,11 +243,10 @@ public class ReviewServiceImpl implements ReviewService {
         review.setModerationNote(req.getNote());
         Review saved = reviewRepository.save(review);
 
-        // Refresh product rating when approval status changes
-        boolean statusChanged = previous != req.getStatus();
+        boolean statusChanged  = previous != req.getStatus();
         boolean approvalChanged =
                 (req.getStatus() == Review.ReviewStatus.APPROVED)
-                        || (previous        == Review.ReviewStatus.APPROVED);
+                        || (previous == Review.ReviewStatus.APPROVED);
 
         if (statusChanged && approvalChanged) {
             refreshProductRating(review.getProduct().getId());

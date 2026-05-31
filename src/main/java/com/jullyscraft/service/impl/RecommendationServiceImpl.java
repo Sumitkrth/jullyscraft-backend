@@ -8,11 +8,11 @@ import com.jullyscraft.mapper.ProductMapper;
 import com.jullyscraft.repository.ProductRepository;
 import com.jullyscraft.repository.UserProductInteractionRepository;
 import com.jullyscraft.service.RecommendationService;
-import com.jullyscraft.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
 
-    private final ProductRepository                   productRepository;
-    private final UserProductInteractionRepository    interactionRepository;
-    private final ProductMapper                       productMapper;
-    private final AiRecommendationEngine              aiEngine;
-    private final RedisTemplate<String, Object>       redisTemplate;
+    private final ProductRepository                productRepository;
+    private final UserProductInteractionRepository interactionRepository;
+    private final ProductMapper                    productMapper;
+    private final AiRecommendationEngine           aiEngine;
+    private final RedisTemplate<String, Object>    redisTemplate;
 
     private static final String TRENDING_CACHE = "recommendations:trending";
     private static final int    CANDIDATE_POOL = 100;
@@ -79,7 +79,6 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         List<Product> products = fetchProductsOrdered(ids, limit);
 
-        // Fallback to similar if no co-purchase data
         if (products.isEmpty()) {
             return getSimilarProducts(productId, limit);
         }
@@ -122,7 +121,6 @@ public class RecommendationServiceImpl implements RecommendationService {
     public RecommendationResponse getPersonalizedRecommendations(
             Long userId, int limit) {
 
-        // 1. Get user's top interacted categories
         List<Object[]> catAffinity = interactionRepository
                 .findCategoryAffinityByUser(userId, PageRequest.of(0, 3));
 
@@ -130,7 +128,6 @@ public class RecommendationServiceImpl implements RecommendationService {
             return getTrendingProducts(limit);
         }
 
-        // 2. Collect products from affinity categories
         List<Long> alreadySeen = interactionRepository
                 .findProductIdsByUserAndType(
                         userId,
@@ -145,15 +142,13 @@ public class RecommendationServiceImpl implements RecommendationService {
                             catId, PageRequest.of(0, 30)).getContent());
         }
 
-        // Remove already purchased / interacted
         List<Product> filtered = candidates.stream()
                 .filter(p -> !alreadySeen.contains(p.getId()))
                 .distinct()
                 .limit(limit)
                 .toList();
 
-        return buildResponse(filtered, "PERSONALIZED",
-                "Recommended for you");
+        return buildResponse(filtered, "PERSONALIZED", "Recommended for you");
     }
 
     // ── Recently viewed ───────────────────────────────────────────────────────
@@ -171,8 +166,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         List<Product> products = fetchProductsOrdered(viewedIds, limit);
 
-        return buildResponse(products, "RECENTLY_VIEWED",
-                "Recently viewed");
+        return buildResponse(products, "RECENTLY_VIEWED", "Recently viewed");
     }
 
     // ── Trending ──────────────────────────────────────────────────────────────
@@ -192,7 +186,6 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         List<Product> products = fetchProductsOrdered(ids, limit);
 
-        // Fallback to featured if no interaction data
         if (products.isEmpty()) {
             products = productRepository
                     .findByFeaturedTrueAndActiveTrueAndDeletedFalse(
@@ -211,8 +204,7 @@ public class RecommendationServiceImpl implements RecommendationService {
         List<Product> products = productRepository
                 .findByActiveTrueAndDeletedFalse(
                         PageRequest.of(0, limit,
-                                org.springframework.data.domain.Sort
-                                        .by("createdAt").descending()))
+                                Sort.by("createdAt").descending()))
                 .getContent();
 
         return buildResponse(products, "NEW_ARRIVALS", "New arrivals");
@@ -242,17 +234,34 @@ public class RecommendationServiceImpl implements RecommendationService {
                     .getContent();
         }
 
-        // Build user context string
+        if (candidates.isEmpty()) {
+            return getTrendingProducts(limit);
+        }
+
+        // Build context strings for AI
         String userContext = buildUserContext(userId);
+        String productContext = seed != null
+                ? "Seed product: " + seed.getName() + " in category " + seed.getCategory().getName()
+                : "General recommendations";
 
-        // Ask Claude to rank
-        List<Long> aiIds = aiEngine.recommend(
-                seed != null ? seed : candidates.get(0),
-                candidates, userContext, limit);
+        // Extract candidate IDs
+        List<Long> candidateIds = candidates.stream()
+                .map(Product::getId)
+                .toList();
 
-        List<Product> aiProducts = fetchProductsOrdered(aiIds, limit);
+        // ✅ FIXED: was aiEngine.recommend(seed, candidates, userContext, limit)
+        //           correct method is rankProducts(List<Long> ids, String userContext, String productContext)
+        List<Long> aiRankedIds = aiEngine.rankProducts(
+                candidateIds,
+                userContext,
+                productContext
+        );
 
-        // Fallback to collaborative if AI fails
+        // Take only the top `limit` from AI-ranked results
+        List<Long> topIds = aiRankedIds.stream().limit(limit).toList();
+        List<Product> aiProducts = fetchProductsOrdered(topIds, limit);
+
+        // Fallback if AI returns nothing useful
         if (aiProducts.isEmpty() && productId != null) {
             return getCollaborativeRecommendations(productId, limit);
         }
@@ -260,8 +269,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             return getTrendingProducts(limit);
         }
 
-        return buildResponse(aiProducts, "AI",
-                "Recommended by AI");
+        return buildResponse(aiProducts, "AI", "Recommended by AI");
     }
 
     // ── Interaction tracking ──────────────────────────────────────────────────
@@ -277,11 +285,11 @@ public class RecommendationServiceImpl implements RecommendationService {
             if (product == null) return;
 
             int score = switch (type) {
-                case VIEW      -> 1;
-                case WISHLIST  -> 2;
-                case CART_ADD  -> 3;
-                case REVIEW    -> 4;
-                case PURCHASE  -> 5;
+                case VIEW     -> 1;
+                case WISHLIST -> 2;
+                case CART_ADD -> 3;
+                case REVIEW   -> 4;
+                case PURCHASE -> 5;
             };
 
             UserProductInteraction interaction = UserProductInteraction.builder()
@@ -293,9 +301,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
             if (userId != null) {
                 interaction.setUser(
-                        com.jullyscraft.entity.User.builder()
-                                .build());
-                // Minimal user reference — JPA will resolve
+                        com.jullyscraft.entity.User.builder().build());
             }
 
             interactionRepository.save(interaction);
@@ -330,7 +336,6 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .filter(p -> !p.isDeleted() && p.isActive())
                 .collect(Collectors.toMap(Product::getId, p -> p));
 
-        // Preserve order from IDs list
         return ids.stream()
                 .map(productMap::get)
                 .filter(Objects::nonNull)
@@ -354,19 +359,19 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     private String buildUserContext(Long userId) {
-        if (userId == null) return null;
+        if (userId == null) return "Guest user — no preference data";
         try {
             List<Object[]> affinities = interactionRepository
                     .findCategoryAffinityByUser(userId, PageRequest.of(0, 3));
 
-            if (affinities.isEmpty()) return null;
+            if (affinities.isEmpty()) return "New user — no interaction history";
 
             StringBuilder sb = new StringBuilder("User prefers categories: ");
             affinities.forEach(row ->
                     sb.append("catId=").append(row[0]).append(" "));
             return sb.toString().trim();
         } catch (Exception e) {
-            return null;
+            return "User context unavailable";
         }
     }
 }
