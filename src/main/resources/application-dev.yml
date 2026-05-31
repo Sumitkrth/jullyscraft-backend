@@ -1,0 +1,22 @@
+spring:
+  jpa:
+    show-sql: true
+
+    hibernate:
+      ddl-auto: update
+
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+
+logging:
+  level:
+    com.jullyscraft: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+management:
+  endpoint:
+    health:
+      show-details: always

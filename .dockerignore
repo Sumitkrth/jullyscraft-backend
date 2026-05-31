@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+*.iml
+target/
+*.log
+logs/
+.env
+.env.*
+../../../../../docker-compose.prod.yml
+README.md
+docs/
+src/main/java/com/jullyscraft/scripts/

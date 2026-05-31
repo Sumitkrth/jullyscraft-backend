@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <h2>Your Order is on its Way 🚚</h2>
+    <p>Hi <span th:text="${firstName}">there</span>,</p>
+    <p>Your order <strong th:text="${orderNumber}">#JC-000001</strong>
+        has been shipped!</p>
+    <table class="order-table">
+        <tr><th>Courier</th><td th:text="${courierName}"></td></tr>
+        <tr><th>Tracking ID</th><td th:text="${trackingId}"></td></tr>
+        <tr><th>Est. Delivery</th><td th:text="${estimatedDelivery}"></td></tr>
+    </table>
+    <a th:href="${trackingUrl}" class="btn">Track Shipment</a>
+</div>
+</body>
+</html>

@@ -1,0 +1,231 @@
+spring:
+  application:
+    name: ${APP_NAME:JullysCraft}
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  thymeleaf:
+    prefix: classpath:/templates/email/
+    suffix: .html
+    check-template-location: false
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+    hikari:
+      pool-name: JullysHikariPool
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+
+    show-sql: ${JPA_SHOW_SQL:false}
+
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 50
+
+        jdbc:
+          batch_size: 50
+
+        order_inserts: true
+        order_updates: true
+
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI}
+    username: ${ELASTICSEARCH_USERNAME}
+    password: ${ELASTICSEARCH_PASSWORD}
+    connection-timeout: 5s
+    socket-timeout: 30s
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+    properties:
+      mail:
+        smtp:
+          auth: true
+
+          starttls:
+            enable: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+    default-property-inclusion: non_null
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+server:
+  port: ${SERVER_PORT:8080}
+
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+
+  swagger-ui:
+    enabled: ${ENABLE_SWAGGER:true}
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    com.jullyscraft: ${APP_LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+app:
+  env: ${APP_ENV:development}
+  timezone: ${APP_TIMEZONE:Asia/Kolkata}
+
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
+    refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:7}
+    email-verify-expiry-hours: ${JWT_EMAIL_VERIFY_EXPIRY_HOURS:24}
+    password-reset-expiry-minutes: ${JWT_PASSWORD_RESET_EXPIRY_MINUTES:30}
+
+  payment:
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID}
+      key-secret: ${RAZORPAY_KEY_SECRET}
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+      currency: INR
+
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+      currency: inr
+
+    refund-window-days: 7
+
+  notification:
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}
+      whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
+
+    firebase:
+      credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+    email:
+      from: ${MAIL_FROM:noreply@jullyscraft.com}
+      from-name: "Jully's Craft"
+      base-url: ${APP_BASE_URL}
+
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
+    secure: true
+
+  search:
+    trending-ttl-hours: 24
+    trending-top-n: 10
+    autocomplete-max: 8
+    suggestion-min-score: 0.3
+
+  file:
+    max-size-mb: 10
+
+    allowed-image-types: image/jpeg,image/png,image/webp,image/gif
+    allowed-doc-types: application/pdf
+
+    upload-dir: ${UPLOAD_DIR}
+    upload-base-url: ${UPLOAD_BASE_URL}
+
+    thumbnail-width: 300
+    thumbnail-height: 300
+
+    medium-width: 800
+    medium-height: 800
+
+    folders:
+      products: jullyscraft/products
+      profiles: jullyscraft/profiles
+      categories: jullyscraft/categories
+      documents: jullyscraft/documents
+
+  shipping:
+    default-provider: ${SHIPPING_PROVIDER:SHIPROCKET}
+
+    free-shipping-threshold: ${FREE_SHIPPING_THRESHOLD:499}
+    default-shipping-fee: ${DEFAULT_SHIPPING_FEE:49}
+
+    shiprocket:
+      email: ${SHIPROCKET_EMAIL}
+      password: ${SHIPROCKET_PASSWORD}
+      base-url: https://apiv2.shiprocket.in/v1/external
+      channel-id: ${SHIPROCKET_CHANNEL_ID}
+
+    delhivery:
+      token: ${DELHIVERY_TOKEN}
+      warehouse-name: ${DELHIVERY_WAREHOUSE:JullysCraft}
+      base-url: https://track.delhivery.com
+
+    weight-grams-default: 500
+
+    dimensions:
+      length: 15
+      breadth: 12
+      height: 10
+
+  gemini:
+    api-key: ${GEMINI_API_KEY}
+    model: gemini-1.5-flash
+    base-url: https://generativelanguage.googleapis.com/v1beta
+
+frontend:
+  url: ${FRONTEND_URL}
+

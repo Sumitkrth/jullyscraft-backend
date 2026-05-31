@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: jullyscraft-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: singapore
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        sync: false
+      - key: DB_USERNAME
+        fromDatabase:
+          name: jullyscraft-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: jullyscraft-db
+          property: password
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jullyscraft-db
+          property: connectionString
+
+databases:
+  - name: jullyscraft-db
+    plan: starter
+    databaseName: jullyscraft_db
+    region: singapore

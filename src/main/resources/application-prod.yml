@@ -1,0 +1,88 @@
+spring:
+  # ── Disable Elasticsearch completely (no free tier) ──────────────────────
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect   # ← ADD: explicit dialect for Neon
+        format_sql: false
+
+  datasource:
+    hikari:
+      maximum-pool-size: 10        # ← CHANGE: was 30, Neon free allows ~20 max
+      minimum-idle: 2              # ← CHANGE: was 10, keep low on free tier
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 30000        # ← ADD: prevents Neon from dropping idle connections
+
+  data:
+    redis:
+      ssl:
+        enabled: true              # ← ADD: Upstash requires SSL (you saw TLS=Enabled)
+      lettuce:
+        pool:
+          max-active: 10           # ← CHANGE: was 20, keep low on free tier
+          max-idle: 5              # ← CHANGE: was 10
+
+  # ── Search fallback flag (used by SearchServiceImpl) ─────────────────────
+  # (put under app: not spring:)
+
+# ── App-level config ─────────────────────────────────────────────────────────
+app:
+  elasticsearch:
+    enabled: false                 # ← ADD: tells SearchServiceImpl to skip ES
+
+# ── Server ───────────────────────────────────────────────────────────────────
+server:
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain
+    min-response-size: 1024
+
+  tomcat:
+    threads:
+      max: 50                      # ← CHANGE: was 200, Render free has limited CPU
+      min-spare: 5                 # ← CHANGE: was 20
+    accept-count: 50               # ← CHANGE: was 100
+    connection-timeout: 20000
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics   # ← REMOVE prometheus (needs extra setup)
+
+  endpoint:
+    health:
+      show-details: when-authorized
+
+  health:
+    redis:
+      enabled: true
+    elasticsearch:
+      enabled: false               # ← CHANGE: was true, ES is disabled
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.jullyscraft: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+
+  file:
+    name: /app/logs/jullyscraft.log   # ← CHANGE: was ./logs/, use absolute path in container
+
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB             # ← CHANGE: was 50MB, Render free has limited disk
+      max-history: 7                  # ← CHANGE: was 30 days

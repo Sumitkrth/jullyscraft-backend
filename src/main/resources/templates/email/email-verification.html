@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <h2>Verify Your Email</h2>
+    <p>Hi <span th:text="${firstName}">there</span>,</p>
+    <p>Click the button below to verify your email address.
+        This link expires in <strong>24 hours</strong>.</p>
+    <a th:href="${verifyUrl}" class="btn">Verify Email</a>
+    <p style="color:#999;font-size:13px;">
+        If you didn't create an account, you can safely ignore this email.
+    </p>
+</div>
+</body>
+</html>
