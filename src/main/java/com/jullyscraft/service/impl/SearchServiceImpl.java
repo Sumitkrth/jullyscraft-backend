@@ -19,6 +19,7 @@ import com.jullyscraft.repository.search.ProductSearchRepository;
 import com.jullyscraft.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,9 +40,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
 
-    private final ProductSearchRepository searchRepository;
-    private final ProductRepository       productRepository;
-    private final ElasticsearchClient     esClient;
+    // ✅ Optional — null when Elasticsearch is disabled (free tier)
+    @Autowired(required = false)
+    private ProductSearchRepository searchRepository;
+
+    @Autowired(required = false)
+    private ElasticsearchClient esClient;
+
+    // ✅ Required — always available
+    private final ProductRepository             productRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.search.trending-ttl-hours:24}")
