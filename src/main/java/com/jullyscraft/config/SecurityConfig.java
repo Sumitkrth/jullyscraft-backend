@@ -33,12 +33,14 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
 
     private static final String[] PUBLIC_URLS = {
-            AppConstants.AUTH_BASE + "/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/api-docs/**",
-            "/actuator/health"
-    };
+                AppConstants.AUTH_BASE + "/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/api-docs/**",
+                "/actuator/health",         // exact path
+                "/actuator/health/**",      // ← liveness, readiness subpaths
+                "/actuator/info"            // basic info
+        };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
