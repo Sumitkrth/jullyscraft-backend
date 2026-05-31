@@ -1,264 +1,175 @@
+# docker-compose.yml — LOCAL DEVELOPMENT ONLY
+# For production, Render uses the Dockerfile directly (no compose needed)
+
 services:
 
-  # ── Spring Boot App ──────────────────────────────────────────────────────────
+  # ── Spring Boot App ────────────────────────────────────────────────────────
   app:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: jullyscraft-app
-
     ports:
       - "8080:8080"
-
     environment:
-      # ── Spring Profile ──────────────────────────────────────────────────────
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-
-      # ── Database ────────────────────────────────────────────────────────────
+      SPRING_PROFILES_ACTIVE: dev
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
-
-      # ── Redis ───────────────────────────────────────────────────────────────
+      DB_NAME: ${DB_NAME:-jullyscraft_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-jullyscraft_db}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-
-      # ── Elasticsearch ───────────────────────────────────────────────────────
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+      REDIS_SSL: false
+      # ES — enabled locally since we have a local container
       ELASTICSEARCH_URI: http://elasticsearch:9200
-      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME}
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD}
-
-      # ── Security ────────────────────────────────────────────────────────────
-      JWT_SECRET: ${JWT_SECRET}
-
-      # ── Mail / SMTP ─────────────────────────────────────────────────────────
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_FROM: ${MAIL_FROM}
-
-      # ── Razorpay ────────────────────────────────────────────────────────────
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
-
-      # ── Stripe ──────────────────────────────────────────────────────────────
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-
-      # ── Cloudinary ──────────────────────────────────────────────────────────
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-
-      # ── Shiprocket ──────────────────────────────────────────────────────────
-      SHIPROCKET_EMAIL: ${SHIPROCKET_EMAIL}
-      SHIPROCKET_PASSWORD: ${SHIPROCKET_PASSWORD}
-      SHIPROCKET_CHANNEL_ID: ${SHIPROCKET_CHANNEL_ID}
-
-      # ── Delhivery ───────────────────────────────────────────────────────────
-      DELHIVERY_TOKEN: ${DELHIVERY_TOKEN}
-      DELHIVERY_WAREHOUSE: ${DELHIVERY_WAREHOUSE}
-
-      # ── Twilio ──────────────────────────────────────────────────────────────
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER}
-      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM}
-
-      # ── AI / Anthropic ──────────────────────────────────────────────────────
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-
-      # ── Application ─────────────────────────────────────────────────────────
-      APP_BASE_URL: ${APP_BASE_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
-
-      # ── Uploads ─────────────────────────────────────────────────────────────
-      UPLOAD_DIR: ${UPLOAD_DIR}
-      UPLOAD_BASE_URL: ${UPLOAD_BASE_URL}
-
-      # ── Firebase ────────────────────────────────────────────────────────────
-      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH}
-
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
+      APP_ELASTICSEARCH_ENABLED: true
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-in-prod}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_xxx}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_xxx}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@jullyscraft.com}
+      SHIPROCKET_EMAIL: ${SHIPROCKET_EMAIL:-}
+      SHIPROCKET_PASSWORD: ${SHIPROCKET_PASSWORD:-}
+      SHIPROCKET_CHANNEL_ID: ${SHIPROCKET_CHANNEL_ID:-}
+      DELHIVERY_TOKEN: ${DELHIVERY_TOKEN:-}
+      DELHIVERY_WAREHOUSE: JullysCraft
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-/app/config/firebase-service-account.json}
+      APP_BASE_URL: http://localhost:8080
+      FRONTEND_URL: http://localhost:3000
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_BASE_URL: http://localhost:8080/uploads
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      SERVER_PORT: 8080
     depends_on:
       postgres:
         condition: service_healthy
-
       redis:
         condition: service_healthy
-
       elasticsearch:
         condition: service_healthy
-
     networks:
       - jullyscraft-network
-
     restart: unless-stopped
-
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
 
-  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-
     container_name: jullyscraft-postgres
-
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-
+      POSTGRES_DB: ${DB_NAME:-jullyscraft_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
-
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
-
     networks:
       - jullyscraft-network
-
     restart: unless-stopped
 
-  # ── Redis ───────────────────────────────────────────────────────────────────
+  # ── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-
     container_name: jullyscraft-redis
-
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD:-redis}
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
-
     ports:
       - "6379:6379"
-
     volumes:
       - redis-data:/data
-
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
     networks:
       - jullyscraft-network
-
     restart: unless-stopped
 
-  # ── Elasticsearch ────────────────────────────────────────────────────────────
+  # ── Elasticsearch (local dev only) ─────────────────────────────────────────
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
-
     container_name: jullyscraft-elasticsearch
-
     environment:
       discovery.type: single-node
       xpack.security.enabled: true
       xpack.security.http.ssl.enabled: false
-      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD}
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-
     ports:
       - "9200:9200"
-
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -u elastic:${ELASTICSEARCH_PASSWORD} -f http://localhost:9200/_cluster/health || exit 1"
-        ]
+      test: ["CMD-SHELL", "curl -u elastic:${ELASTICSEARCH_PASSWORD:-elastic} -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
-
     networks:
       - jullyscraft-network
-
     restart: unless-stopped
 
-  # ── Kibana (dev only — ES visualiser) ───────────────────────────────────────
+  # ── Dev tools (only with: docker compose --profile debug up) ──────────────
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.0
-
     container_name: jullyscraft-kibana
-
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD}
-
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
     ports:
       - "5601:5601"
-
     depends_on:
       - elasticsearch
-
     networks:
       - jullyscraft-network
-
     profiles:
       - debug
 
-  # ── pgAdmin4 (dev only — Postgres GUI) ───────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
-
     container_name: jullyscraft-pgadmin
-
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@jullyscraft.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: 'False'
-
     ports:
       - "5050:80"
-
     depends_on:
       - postgres
-
     networks:
       - jullyscraft-network
-
-    restart: unless-stopped
-
-  # ── Redis Insight (dev only — Redis GUI) ────────────────────────────────────
-  redisinsight:
-    image: redis/redisinsight:latest
-
-    container_name: jullyscraft-redisinsight
-
-    ports:
-      - "5540:5540"
-
-    depends_on:
-      - redis
-
-    networks:
-      - jullyscraft-network
-
     profiles:
       - debug
 

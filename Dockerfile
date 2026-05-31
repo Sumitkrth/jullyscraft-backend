@@ -3,7 +3,7 @@ FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
-# Cache dependencies first (layer caching)
+# Copy pom first (layer cache — only re-downloads deps when pom changes)
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
 
@@ -12,37 +12,36 @@ COPY src ./src
 RUN mvn clean package -DskipTests -q
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Security: run as non-root user
+# Non-root user for security
 RUN addgroup -S jullyscraft && adduser -S jullyscraft -G jullyscraft
 
-# Install curl for healthcheck
+# curl for health checks
 RUN apk add --no-cache curl
 
-# Copy JAR from builder
+# Copy JAR from build stage
 COPY --from=builder /app/target/*.jar app.jar
 
 # Set ownership
 RUN chown -R jullyscraft:jullyscraft /app
+
+# Create required directories
+RUN mkdir -p /app/logs /app/uploads /app/config && \
+    chown -R jullyscraft:jullyscraft /app/logs /app/uploads /app/config
+
 USER jullyscraft
 
-# JVM tuning for containers
-ENV JAVA_OPTS="\
-    -Xms256m \
-    -Xmx512m \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:+UseG1GC \
-    -XX:+OptimizeStringConcat \
-    -Djava.security.egd=file:/dev/./urandom \
-    -Dspring.backgroundpreinitializer.ignore=true"
-
+# ✅ Expose port — Render needs this to detect the port
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+# ✅ JVM tuned for 512MB free tier container
+ENV JAVA_OPTS="-Xmx300m -Xms128m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# ✅ Uses JAVA_OPTS so memory limits apply
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
