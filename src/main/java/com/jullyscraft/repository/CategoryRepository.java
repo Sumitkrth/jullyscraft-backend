@@ -21,30 +21,47 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     // ── Tree queries ──────────────────────────────────────────────────────────
 
     // All root categories (no parent), not deleted
-    @Query("SELECT c FROM Category c WHERE c.parent IS NULL AND c.deleted = false ORDER BY c.displayOrder ASC")
+    // ✅ LEFT JOIN FETCH children — prevents LazyInitializationException in mapper
+    @Query("SELECT DISTINCT c FROM Category c " +
+            "LEFT JOIN FETCH c.children ch " +
+            "WHERE c.parent IS NULL AND c.deleted = false " +
+            "ORDER BY c.displayOrder ASC")
     List<Category> findAllRootCategories();
 
-    // Root categories that are active
-    @Query("SELECT c FROM Category c WHERE c.parent IS NULL AND c.active = true AND c.deleted = false ORDER BY c.displayOrder ASC")
+    // Root categories that are active — with children eagerly loaded
+    @Query("SELECT DISTINCT c FROM Category c " +
+            "LEFT JOIN FETCH c.children ch " +
+            "WHERE c.parent IS NULL AND c.active = true AND c.deleted = false " +
+            "ORDER BY c.displayOrder ASC")
     List<Category> findActiveRootCategories();
 
     // Children of a given parent
-    @Query("SELECT c FROM Category c WHERE c.parent.id = :parentId AND c.deleted = false ORDER BY c.displayOrder ASC")
+    @Query("SELECT c FROM Category c " +
+            "WHERE c.parent.id = :parentId AND c.deleted = false " +
+            "ORDER BY c.displayOrder ASC")
     List<Category> findChildrenByParentId(Long parentId);
 
     // Active children of a given parent
-    @Query("SELECT c FROM Category c WHERE c.parent.id = :parentId AND c.active = true AND c.deleted = false ORDER BY c.displayOrder ASC")
+    @Query("SELECT c FROM Category c " +
+            "WHERE c.parent.id = :parentId AND c.active = true AND c.deleted = false " +
+            "ORDER BY c.displayOrder ASC")
     List<Category> findActiveChildrenByParentId(Long parentId);
 
-    // Featured root categories
-    @Query("SELECT c FROM Category c WHERE c.featured = true AND c.active = true AND c.deleted = false ORDER BY c.displayOrder ASC")
+    // Featured root categories — with children eagerly loaded
+    @Query("SELECT DISTINCT c FROM Category c " +
+            "LEFT JOIN FETCH c.children ch " +
+            "WHERE c.featured = true AND c.active = true AND c.deleted = false " +
+            "ORDER BY c.displayOrder ASC")
     List<Category> findFeaturedCategories();
 
     // Check if category has active children
-    @Query("SELECT COUNT(c) > 0 FROM Category c WHERE c.parent.id = :parentId AND c.deleted = false")
+    @Query("SELECT COUNT(c) > 0 FROM Category c " +
+            "WHERE c.parent.id = :parentId AND c.deleted = false")
     boolean hasChildren(Long parentId);
 
-    // All active categories flat (for dropdowns)
-    @Query("SELECT c FROM Category c WHERE c.active = true AND c.deleted = false ORDER BY c.name ASC")
+    // All active categories flat (for dropdowns) — no children needed here
+    @Query("SELECT c FROM Category c " +
+            "WHERE c.active = true AND c.deleted = false " +
+            "ORDER BY c.name ASC")
     List<Category> findAllActiveFlat();
 }
