@@ -21,6 +21,12 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @GetMapping
+    @Operation(summary = "Get all active categories")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getAllActiveFlat()));
+    }
+
     @GetMapping("/tree")
     @Operation(summary = "Get full category tree (nested)")
     public ResponseEntity<ApiResponse<List<CategoryTreeResponse>>> getTree() {
